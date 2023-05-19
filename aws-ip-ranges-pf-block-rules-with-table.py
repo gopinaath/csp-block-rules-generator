@@ -9,22 +9,31 @@ data = response.json()
 ipv4_ranges = [prefix['ip_prefix'] for prefix in data['prefixes']]
 ipv6_ranges = [prefix['ipv6_prefix'] for prefix in data['ipv6_prefixes']]
 
-# Combine both ipv4 and ipv6 ranges
-ip_ranges = ipv4_ranges + ipv6_ranges
-
 # Open the output file
 with open('aws-block-table.conf', 'w') as f:
 
-    # Begin the pf table
-    f.write("table <aws-blocked> persist { \n")
+    # Begin the pf table for IPv4 ranges
+    f.write("table <aws-blocked-ipv4> persist { \n")
 
-    # Loop through the IP ranges and add them to the table
-    for ip_range in ip_ranges:
+    # Loop through the IPv4 ranges and add them to the table
+    for ip_range in ipv4_ranges:
         f.write("  " + ip_range + "\n")
 
     # End the pf table
     f.write("} \n")
 
-    # Write block rules using the table
-    f.write("block in quick on $ext_if from <aws-blocked>\n")
-    f.write("block out quick on $ext_if to <aws-blocked>\n")
+    # Begin the pf table for IPv6 ranges
+    f.write("table <aws-blocked-ipv6> persist { \n")
+
+    # Loop through the IPv6 ranges and add them to the table
+    for ip_range in ipv6_ranges:
+        f.write("  " + ip_range + "\n")
+
+    # End the pf table
+    f.write("} \n")
+
+    # Write block rules using the tables
+    f.write("block in quick on $ext_if from <aws-blocked-ipv4>\n")
+    f.write("block in quick on $ext_if from <aws-blocked-ipv6>\n")
+    f.write("block out quick on $ext_if to <aws-blocked-ipv4>\n")
+    f.write("block out quick on $ext_if to <aws-blocked-ipv6>\n")
